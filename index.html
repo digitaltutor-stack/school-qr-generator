@@ -145,7 +145,8 @@ input[type=range]{ flex:1; accent-color: var(--primary); }
   border-radius:3px;
   box-shadow: 0 1px 0 rgba(0,0,0,.03), 0 8px 22px -12px rgba(31,42,36,.35);
   padding:26px 26px 20px;
-  width:min(100%, 360px);
+  width:min(100%, var(--card-w, 360px));
+  transition: width .12s ease;
   background-image:
     repeating-linear-gradient(to bottom, transparent 0 27px, rgba(31,42,36,.06) 27px 28px);
   background-position: 0 92px;
@@ -177,7 +178,7 @@ input[type=range]{ flex:1; accent-color: var(--primary); }
 /* ---------- Batch ---------- */
 .batch-toolbar{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap; }
 .batch-grid{
-  display:grid; grid-template-columns:repeat(auto-fill, minmax(200px,1fr)); gap:18px;
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(var(--batch-w, 200px),1fr)); gap:18px;
 }
 .batch-grid .index-card{ width:100%; padding:20px 16px 16px; }
 .batch-grid .index-card canvas{ width:100%; height:auto; }
@@ -322,7 +323,7 @@ footer.notes{
           </div>
 
           <div id="singleCardWrap" style="display:none;">
-            <div class="index-card">
+            <div class="index-card" id="singleIndexCard">
               <div class="card-code" id="singleCardCode">V1 · M · 21×21</div>
               <canvas id="singleCanvas"></canvas>
               <div class="card-label" id="singleCardLabel"></div>
@@ -2834,6 +2835,7 @@ var qrcode = function() {
   var bgColor = document.getElementById("bgColor");
   var labelInput = document.getElementById("labelInput");
   var singleCanvas = document.getElementById("singleCanvas");
+  var singleIndexCard = document.getElementById("singleIndexCard");
   var singleCardCode = document.getElementById("singleCardCode");
   var singleCardLabel = document.getElementById("singleCardLabel");
   var singleCardSub = document.getElementById("singleCardSub");
@@ -2932,6 +2934,13 @@ var qrcode = function() {
       singleEmpty.style.display = "none";
       downloadSingleBtn.disabled = false;
 
+      // 카드 폭을 QR 크기에 맞춰 실제로 키운다 (최소 280px, 최대 640px로 제한해 레이아웃 붕괴 방지).
+      // 상한을 넘는 크기는 max-width:100%(캔버스 CSS)로 자연스럽게 축소 표시되고,
+      // 다운로드되는 PNG 실제 해상도는 슬라이더 값 그대로 유지된다.
+      var CARD_PADDING = 52; // 좌우 padding 26px * 2
+      var cardW = Math.max(280, Math.min(640, singleState.size + CARD_PADDING));
+      singleIndexCard.style.setProperty("--card-w", cardW + "px");
+
       singleCardCode.textContent = "V" + info.version + " · " + info.ec + " · " + info.moduleCount + "×" + info.moduleCount;
       singleCardLabel.textContent = labelInput.value.trim() || (singleState.contentType === "wifi" ? (wifiSsid.value.trim() || "Wi-Fi") : truncate(payload, 40));
       singleCardSub.textContent = singleState.contentType === "wifi" ? "Wi-Fi 접속 QR" : "";
@@ -3001,6 +3010,9 @@ var qrcode = function() {
     var ec = batchEc.value;
     var size = parseInt(batchSize.value, 10);
     var failCount = 0;
+
+    // 그리드 열 최소 폭을 슬라이더 크기에 맞춰 조절 (카드 패딩 32px + 여유 8px 감안)
+    batchGrid.style.setProperty("--batch-w", Math.max(160, size + 40) + "px");
 
     items.forEach(function (item, i) {
       var card = document.createElement("div");
